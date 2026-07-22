@@ -8,6 +8,7 @@ export const HOUSES = [
     words: 'Winter Is Coming',
     sigil: '🐺',
     color: '#8f9aa3',
+    weight: 6,
   },
   {
     id: 'lannister',
@@ -17,6 +18,7 @@ export const HOUSES = [
     words: 'Hear Me Roar!',
     sigil: '🦁',
     color: '#c9a15a',
+    weight: 6,
   },
   {
     id: 'targaryen',
@@ -26,6 +28,7 @@ export const HOUSES = [
     words: 'Fire and Blood',
     sigil: '🐉',
     color: '#d94a1f',
+    weight: 6,
   },
   {
     id: 'baratheon',
@@ -35,6 +38,7 @@ export const HOUSES = [
     words: 'Ours Is the Fury',
     sigil: '🦌',
     color: '#f0d68a',
+    weight: 4,
   },
   {
     id: 'greyjoy',
@@ -44,6 +48,7 @@ export const HOUSES = [
     words: 'We Do Not Sow',
     sigil: '🦑',
     color: '#3a3f47',
+    weight: 3,
   },
   {
     id: 'tyrell',
@@ -53,6 +58,7 @@ export const HOUSES = [
     words: 'Growing Strong',
     sigil: '🌹',
     color: '#6fa84a',
+    weight: 3,
   },
   {
     id: 'martell',
@@ -62,6 +68,7 @@ export const HOUSES = [
     words: 'Unbowed, Unbent, Unbroken',
     sigil: '☀️',
     color: '#d9772f',
+    weight: 3,
   },
   {
     id: 'arryn',
@@ -71,6 +78,7 @@ export const HOUSES = [
     words: 'As High as Honor',
     sigil: '🦅',
     color: '#6fa8c9',
+    weight: 2,
   },
   {
     id: 'tully',
@@ -80,5 +88,6 @@ export const HOUSES = [
     words: 'Family, Duty, Honor',
     sigil: '🐟',
     color: '#4a6a8a',
+    weight: 2,
   },
 ];

@@ -109,75 +109,33 @@ main {
   justify-content: center;
 }
 
-.reel {
+.wheel-stage {
   position: relative;
-  width: 100%;
-  max-width: 480px;
-  height: 320px;
-  overflow: hidden;
-  border: 2px solid var(--border);
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent 15%, transparent 85%, rgba(0, 0, 0, 0.5)),
-    var(--card-bg);
-  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6), 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-
-.reel-track {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  will-change: transform;
-}
-
-.reel-pointer {
-  position: absolute;
-  left: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--gold-bright);
-  font-size: 1.6rem;
-  text-shadow: 0 0 8px rgba(240, 214, 138, 0.8);
-  z-index: 5;
-  pointer-events: none;
-}
-
-.reel-item {
-  height: 320px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  text-align: center;
-  gap: 0.5rem;
 }
 
-.reel-item img,
-.house-sigil {
-  width: 140px;
-  height: 140px;
-  object-fit: cover;
-  border-radius: 50%;
-  border: 3px solid var(--gold);
-  box-shadow: 0 0 20px rgba(201, 161, 90, 0.35);
-  background: #1c1c1c;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3.2rem;
-}
-
-.reel-item .name {
-  font-weight: 700;
-  font-size: 1.15rem;
+.wheel-pointer {
   color: var(--gold-bright);
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: -6px;
+  text-shadow: 0 0 10px rgba(240, 214, 138, 0.9);
+  z-index: 5;
 }
 
-.reel-item .title {
-  font-size: 0.85rem;
-  color: var(--text-dim);
-  font-style: italic;
+.wheel-wrap {
+  position: relative;
+  border-radius: 50%;
+  border: 6px solid var(--gold);
+  box-shadow: 0 0 0 3px var(--bg-1), 0 0 30px rgba(201, 161, 90, 0.4), 0 10px 30px rgba(0, 0, 0, 0.6);
+  will-change: transform;
+}
+
+.wheel-wrap canvas {
+  display: block;
+  border-radius: 50%;
 }
 
 .controls {
@@ -262,6 +220,137 @@ main {
   font-style: italic;
   color: var(--gold);
   font-size: 1.05rem;
+}
+
+.result-card .result-probability {
+  margin-top: 0.85rem;
+  color: var(--gold-bright);
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+}
+
+.odds-list {
+  margin-top: 1.75rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.9rem 1.2rem;
+}
+
+.odds-list summary {
+  cursor: pointer;
+  color: var(--gold);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.odds-list ul {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.odds-list li {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+}
+
+.odds-name {
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.odds-bar-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.odds-bar-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--ember), var(--gold-bright));
+  border-radius: 999px;
+}
+
+.odds-pct {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.game-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.game-step-title {
+  text-align: center;
+  color: var(--gold-bright);
+  font-size: 1.15rem;
+  letter-spacing: 0.5px;
+  margin: 0 0 1rem;
+}
+
+.loading-text {
+  text-align: center;
+  color: var(--text-dim);
+}
+
+.duel-vs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.duel-fighter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 130px;
+}
+
+.duel-fighter img {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--gold);
+}
+
+.duel-fighter span {
+  font-size: 0.8rem;
+  color: var(--text);
+  text-align: center;
+}
+
+.duel-vs-label {
+  color: var(--ember-bright);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.result-card.victory {
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 30px rgba(240, 214, 138, 0.3);
+}
+
+.result-card.defeat {
+  border-color: var(--ember);
 }
 
 .error {

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import Reel from './components/Reel';
+import Wheel from './components/Wheel';
 import CharacterResult, { HouseResult } from './components/ResultCard';
+import OddsList from './components/OddsList';
+import GameMode from './components/GameMode';
 import { fetchCharacters, fetchHouseDetails } from './api';
 import { HOUSES } from './data/houses';
 
@@ -16,21 +18,19 @@ export default function App() {
   const [houseDetails, setHouseDetails] = useState(null);
 
   useEffect(() => {
-    setLoadingList(true);
-    setListError(null);
-    if (mode === 'characters') {
-      fetchCharacters()
-        .then(setCharacters)
-        .catch((e) => setListError(e.message))
-        .finally(() => setLoadingList(false));
-    } else {
-      setLoadingList(false);
-    }
+    fetchCharacters()
+      .then(setCharacters)
+      .catch((e) => setListError(e.message))
+      .finally(() => setLoadingList(false));
+  }, []);
+
+  useEffect(() => {
     setResult(null);
     setHouseDetails(null);
   }, [mode]);
 
   const items = mode === 'characters' ? characters : HOUSES;
+  const totalWeight = items.reduce((a, it) => a + (it.weight || 1), 0);
 
   function handleSpin() {
     if (!items.length || spinning) return;
@@ -49,26 +49,7 @@ export default function App() {
     }
   }
 
-  function renderItem(item) {
-    if (mode === 'characters') {
-      return (
-        <>
-          <img src={item.image} alt={item.name} />
-          <div className="name">{item.name}</div>
-          {item.title && <div className="title">{item.title}</div>}
-        </>
-      );
-    }
-    return (
-      <>
-        <div className="house-sigil" style={{ background: item.color }}>
-          {item.sigil}
-        </div>
-        <div className="name">{item.name}</div>
-        <div className="title">{item.region}</div>
-      </>
-    );
-  }
+  const resultProbability = result ? ((result.weight / totalWeight) * 100).toFixed(1) : null;
 
   return (
     <>
@@ -98,19 +79,29 @@ export default function App() {
         >
           Casas
         </button>
+        <button
+          className={`mode-btn ${mode === 'guerra' ? 'active' : ''}`}
+          role="tab"
+          aria-selected={mode === 'guerra'}
+          onClick={() => !spinning && setMode('guerra')}
+        >
+          Guerra del Trono
+        </button>
       </nav>
 
       <main>
         {listError && <section className="error">⚠️ {listError}</section>}
 
-        {!listError && (
+        {!listError && mode === 'guerra' && <GameMode characters={characters} />}
+
+        {!listError && mode !== 'guerra' && (
           <>
             <section className="roulette-stage">
-              <Reel
+              <Wheel
                 items={items}
                 spinToken={spinToken}
                 onSettle={handleSettle}
-                renderItem={renderItem}
+                showSigils={mode === 'houses'}
               />
             </section>
 
@@ -128,10 +119,14 @@ export default function App() {
               </button>
             </div>
 
-            {result && mode === 'characters' && <CharacterResult character={result} />}
-            {result && mode === 'houses' && (
-              <HouseResult house={result} details={houseDetails} />
+            {result && mode === 'characters' && (
+              <CharacterResult character={result} probability={resultProbability} />
             )}
+            {result && mode === 'houses' && (
+              <HouseResult house={result} details={houseDetails} probability={resultProbability} />
+            )}
+
+            <OddsList items={items} totalWeight={totalWeight} />
           </>
         )}
       </main>

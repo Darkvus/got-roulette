@@ -1,3 +1,5 @@
+import { weightFor } from './data/weights';
+
 const THRONES_API = 'https://thronesapi.com/api/v2';
 const ICE_AND_FIRE_API = 'https://www.anapioficeandfire.com/api';
 
@@ -11,7 +13,9 @@ export async function fetchCharacters() {
       id: c.id,
       name: c.fullName,
       title: c.title || c.family || '',
+      family: c.family || '',
       image: c.imageUrl,
+      weight: weightFor(c.fullName),
     }));
 }
 
