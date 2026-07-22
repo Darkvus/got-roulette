@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { pickWeighted } from '../data/weights';
 
 const SIZE = 320;
 const PALETTE = ['#8a1f11', '#c9a15a', '#3a3f47', '#6fa8c9', '#6fa84a', '#4a6a8a', '#d94a1f', '#8f9aa3'];
+const SPIN_DURATION = 3800;
 
 function textColorFor(hex) {
   if (!hex || hex[0] !== '#') return '#0a0c10';
@@ -92,10 +93,28 @@ function drawWheel(canvas, items, colorFor, showSigils) {
   ctx.stroke();
 }
 
+function itemAtTop(items, totalWeight, localAngleDeg) {
+  let cum = 0;
+  for (let i = 0; i < items.length; i++) {
+    const start = (cum / totalWeight) * 360;
+    const size = (items[i].weight / totalWeight) * 360;
+    if (localAngleDeg >= start && localAngleDeg < start + size) return items[i];
+    cum += items[i].weight;
+  }
+  return items[items.length - 1];
+}
+
+function easeOutQuart(t) {
+  return 1 - Math.pow(1 - t, 4);
+}
+
 export default function Wheel({ items, spinToken, onSettle, showSigils = false }) {
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
   const rotationRef = useRef(0);
+  const rafRef = useRef(null);
+  const [ticker, setTicker] = useState(null);
+  const [spinning, setSpinning] = useState(false);
 
   const colorFor = (item, i) => item.color || PALETTE[i % PALETTE.length];
 
@@ -112,7 +131,6 @@ export default function Wheel({ items, spinToken, onSettle, showSigils = false }
     const totalWeight = items.reduce((a, it) => a + it.weight, 0);
     const { item: chosen, index: chosenIndex } = pickWeighted(items, (it) => it.weight);
 
-    // compute the mid-angle (degrees, clockwise from top) of the chosen slice
     let cum = 0;
     for (let i = 0; i < chosenIndex; i++) cum += items[i].weight;
     const sliceStart = (cum / totalWeight) * 360;
@@ -120,30 +138,50 @@ export default function Wheel({ items, spinToken, onSettle, showSigils = false }
     const targetMid = sliceStart + sliceSize / 2;
 
     const extraTurns = 5 + Math.floor(Math.random() * 3);
-    const current = rotationRef.current;
-    // normalize current rotation to [0,360)
-    const currentMod = ((current % 360) + 360) % 360;
-    // we need finalMod such that finalMod + targetMid ≡ 0 (mod 360) → pointer (fixed at top) lands on chosen slice
-    const finalMod = ((360 - targetMid) % 360 + 360) % 360;
+    const startRotation = rotationRef.current;
+    const currentMod = ((startRotation % 360) + 360) % 360;
+    const finalMod = (((360 - targetMid) % 360) + 360) % 360;
     let delta = finalMod - currentMod;
     if (delta <= 0) delta += 360;
-    const finalRotation = current + delta + extraTurns * 360;
+    const totalDelta = delta + extraTurns * 360;
+    const finalRotation = startRotation + totalDelta;
 
-    rotationRef.current = finalRotation;
     const el = wrapRef.current;
-    el.style.transition = 'transform 3.6s cubic-bezier(0.10, 0.68, 0.12, 1)';
-    el.style.transform = `rotate(${finalRotation}deg)`;
+    el.style.transition = 'none';
+    setSpinning(true);
 
-    const timeout = setTimeout(() => {
-      onSettle(chosen);
-    }, 3700);
+    let start = null;
+    function frame(now) {
+      if (start === null) start = now;
+      const t = Math.min(1, (now - start) / SPIN_DURATION);
+      const eased = easeOutQuart(t);
+      const rotation = startRotation + totalDelta * eased;
+      el.style.transform = `rotate(${rotation}deg)`;
 
-    return () => clearTimeout(timeout);
+      const mod = ((rotation % 360) + 360) % 360;
+      const localAngle = (((360 - mod) % 360) + 360) % 360;
+      const topItem = itemAtTop(items, totalWeight, localAngle);
+      setTicker(topItem ? topItem.name : null);
+
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(frame);
+      } else {
+        rotationRef.current = finalRotation;
+        setSpinning(false);
+        onSettle(chosen);
+      }
+    }
+    rafRef.current = requestAnimationFrame(frame);
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spinToken, items]);
 
   return (
     <div className="wheel-stage">
+      <div className={`wheel-ticker ${spinning ? 'spinning' : ''}`}>{ticker || ' '}</div>
       <div className="wheel-pointer">▼</div>
       <div className="wheel-wrap" ref={wrapRef}>
         <canvas ref={canvasRef} />

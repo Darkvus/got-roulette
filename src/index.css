@@ -116,6 +116,26 @@ main {
   align-items: center;
 }
 
+.wheel-ticker {
+  min-height: 1.6rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--gold-bright);
+  letter-spacing: 0.5px;
+  text-align: center;
+  text-shadow: 0 0 10px rgba(240, 214, 138, 0.5);
+}
+
+.wheel-ticker.spinning {
+  color: var(--ember-bright);
+  animation: ticker-pulse 0.12s linear infinite;
+}
+
+@keyframes ticker-pulse {
+  from { opacity: 0.75; }
+  to { opacity: 1; }
+}
+
 .wheel-pointer {
   color: var(--gold-bright);
   font-size: 2rem;
