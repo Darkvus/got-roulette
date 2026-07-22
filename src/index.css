@@ -117,13 +117,27 @@ main {
 }
 
 .wheel-ticker {
-  min-height: 1.6rem;
+  position: absolute;
+  top: 34px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  min-width: 60%;
+  max-width: 90%;
+  padding: 0.35rem 1rem;
+  border-radius: 999px;
+  background: rgba(10, 8, 4, 0.72);
+  border: 1px solid var(--gold);
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: 1rem;
   color: var(--gold-bright);
   letter-spacing: 0.5px;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-shadow: 0 0 10px rgba(240, 214, 138, 0.5);
+  pointer-events: none;
 }
 
 .wheel-ticker.spinning {
