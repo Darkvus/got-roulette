@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { pickWeighted } from '../data/weights';
+import { playTick } from '../sound';
+import { useSettings } from '../settingsContext';
 
 const SIZE = 320;
 const PALETTE = ['#8a1f11', '#c9a15a', '#3a3f47', '#6fa8c9', '#6fa84a', '#4a6a8a', '#d94a1f', '#8f9aa3'];
@@ -115,6 +117,8 @@ export default function Wheel({ items, spinToken, onSettle, showSigils = false }
   const rafRef = useRef(null);
   const [ticker, setTicker] = useState(null);
   const [spinning, setSpinning] = useState(false);
+  const lastTickNameRef = useRef(null);
+  const { soundEnabled } = useSettings();
 
   const colorFor = (item, i) => item.color || PALETTE[i % PALETTE.length];
 
@@ -161,6 +165,10 @@ export default function Wheel({ items, spinToken, onSettle, showSigils = false }
       const mod = ((rotation % 360) + 360) % 360;
       const localAngle = (((360 - mod) % 360) + 360) % 360;
       const topItem = itemAtTop(items, totalWeight, localAngle);
+      if (topItem && topItem.name !== lastTickNameRef.current) {
+        lastTickNameRef.current = topItem.name;
+        if (soundEnabled) playTick(520, 0.03, 0.05);
+      }
       setTicker(topItem ? topItem.name : null);
 
       if (t < 1) {
@@ -168,6 +176,7 @@ export default function Wheel({ items, spinToken, onSettle, showSigils = false }
       } else {
         rotationRef.current = finalRotation;
         setSpinning(false);
+        if (soundEnabled) playTick(880, 0.18, 0.07);
         onSettle(chosen);
       }
     }

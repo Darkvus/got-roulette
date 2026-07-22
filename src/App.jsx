@@ -3,6 +3,7 @@ import Wheel from './components/Wheel';
 import CharacterResult, { HouseResult } from './components/ResultCard';
 import OddsList from './components/OddsList';
 import GameMode from './components/GameMode';
+import SettingsButton from './components/SettingsButton';
 import { fetchCharacters, fetchHouseDetails } from './api';
 import { HOUSES } from './data/houses';
 
@@ -54,6 +55,7 @@ export default function App() {
   return (
     <>
       <div className="bg-fire" />
+      <SettingsButton />
 
       <header className="site-header">
         <h1>
