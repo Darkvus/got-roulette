@@ -49,6 +49,7 @@ export default function GameMode({ characters }) {
   const [houseSpinToken, setHouseSpinToken] = useState(0);
   const [houseSpinning, setHouseSpinning] = useState(false);
   const [house, setHouse] = useState(null);
+  const [showHousePicker, setShowHousePicker] = useState(false);
 
   const [charPool, setCharPool] = useState([]);
   const [charSpinToken, setCharSpinToken] = useState(0);
@@ -82,6 +83,13 @@ export default function GameMode({ characters }) {
     setCharPool(getHouseCharacters(item.id, characters));
   }
 
+  function pickHouseManually(item) {
+    if (house) return;
+    setShowHousePicker(false);
+    setHouse(item);
+    setCharPool(getHouseCharacters(item.id, characters));
+  }
+
   function spinChar() {
     if (charSpinning || !charPool.length) return;
     setCharSpinning(true);
@@ -104,7 +112,7 @@ export default function GameMode({ characters }) {
     setRound(0);
     setDuelWinner(null);
     setOutcome(null);
-    setInventory({ fire: 0, raven: 0, poison: 0 });
+    setInventory({ fire: 0, raven: 1, poison: 0 });
     setActive({ boost: false, weaken: false, revive: false });
     setStep('duel');
   }
@@ -171,6 +179,7 @@ export default function GameMode({ characters }) {
   function restart() {
     setStep('house');
     setHouse(null);
+    setShowHousePicker(false);
     setCharPool([]);
     setChampion(null);
     setRivals([]);
@@ -190,18 +199,46 @@ export default function GameMode({ characters }) {
       {step === 'house' && (
         <section className="game-step">
           <h3 className="game-step-title">1. Elige tu Casa</h3>
-          <div className="roulette-stage">
-            <Wheel items={houses} spinToken={houseSpinToken} onSettle={onHouseSettle} showSigils />
-          </div>
-          <div className="controls">
-            <button className="spin-btn" onClick={spinHouse} disabled={houseSpinning}>
-              {houseSpinning ? 'Girando...' : 'Girar por tu Casa'}
-            </button>
-          </div>
-          {house && !houseSpinning && (
+
+          {!house && (
+            <>
+              <div className="roulette-stage">
+                <Wheel items={houses} spinToken={houseSpinToken} onSettle={onHouseSettle} showSigils />
+              </div>
+              <div className="controls">
+                <button className="spin-btn" onClick={spinHouse} disabled={houseSpinning}>
+                  {houseSpinning ? 'Girando...' : '🎲 Girar al azar'}
+                </button>
+                <button
+                  className="spin-btn secondary"
+                  onClick={() => setShowHousePicker((s) => !s)}
+                  disabled={houseSpinning}
+                >
+                  🏰 Elegir mi Casa
+                </button>
+              </div>
+              {showHousePicker && (
+                <div className="house-picker">
+                  {houses.map((h) => (
+                    <button
+                      key={h.id}
+                      className="house-pick-btn"
+                      onClick={() => pickHouseManually(h)}
+                    >
+                      <span className="house-pick-sigil" style={{ background: h.color }}>{h.sigil}</span>
+                      {h.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {house && (
             <div className="result-card">
               <div className="crest" style={{ background: house.color }}>{house.sigil}</div>
               <h2>{house.name}</h2>
+              <p className="result-title">Tu Casa queda sellada. No hay vuelta atrás.</p>
               <div className="controls">
                 <button className="spin-btn" onClick={() => setStep('char')}>
                   Elegir mi personaje →
@@ -228,6 +265,9 @@ export default function GameMode({ characters }) {
               <img className="crest" src={champion.image} alt={champion.name} />
               <h2>{champion.name}</h2>
               {champion.title && <p className="result-title">{champion.title}</p>}
+              <p className="result-words">
+                🐦 Empiezas con un Cuervo Mensajero: si caes en tu primer duelo, resucitarás como Jon Snow.
+              </p>
               <div className="controls">
                 <button className="spin-btn" onClick={startBattles}>
                   Marchar hacia el Trono de Hierro →

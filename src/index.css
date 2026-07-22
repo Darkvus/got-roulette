@@ -270,6 +270,8 @@ main {
 .controls {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   margin: 2rem 0;
 }
 
@@ -296,6 +298,52 @@ main {
 .spin-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.spin-btn.secondary {
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--gold-bright);
+  box-shadow: none;
+}
+
+.house-picker {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin: 1rem auto 0;
+  max-width: 480px;
+}
+
+.house-pick-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem 0.4rem 0.4rem;
+  color: var(--text);
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.house-pick-btn:hover {
+  border-color: var(--gold);
+  transform: translateY(-1px);
+}
+
+.house-pick-sigil {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
 }
 
 .result-card {
