@@ -252,19 +252,26 @@ export default function GameMode({ characters }) {
       {step === 'char' && (
         <section className="game-step">
           <h3 className="game-step-title">2. Elige tu Campeón de {house.name}</h3>
-          <div className="roulette-stage">
-            <Wheel items={charPool} spinToken={charSpinToken} onSettle={onCharSettle} />
-          </div>
-          <div className="controls">
-            <button className="spin-btn" onClick={spinChar} disabled={charSpinning || !charPool.length}>
-              {charSpinning ? 'Girando...' : 'Girar por tu Campeón'}
-            </button>
-          </div>
-          {champion && !charSpinning && (
+
+          {!champion && (
+            <>
+              <div className="roulette-stage">
+                <Wheel items={charPool} spinToken={charSpinToken} onSettle={onCharSettle} />
+              </div>
+              <div className="controls">
+                <button className="spin-btn" onClick={spinChar} disabled={charSpinning || !charPool.length}>
+                  {charSpinning ? 'Girando...' : 'Girar por tu Campeón'}
+                </button>
+              </div>
+            </>
+          )}
+
+          {champion && (
             <div className="result-card">
               <img className="crest" src={champion.image} alt={champion.name} />
               <h2>{champion.name}</h2>
               {champion.title && <p className="result-title">{champion.title}</p>}
+              <p className="result-title">Tu Campeón queda sellado. No hay vuelta atrás.</p>
               <p className="result-words">
                 🐦 Empiezas con un Cuervo Mensajero: si caes en tu primer duelo, resucitarás como Jon Snow.
               </p>
@@ -296,40 +303,45 @@ export default function GameMode({ characters }) {
             </div>
           </div>
 
-          <div className="inventory-bar">
-            {ITEM_DEFS.map((def) => (
-              <button
-                key={def.id}
-                className="inventory-item"
-                title={def.desc}
-                disabled={
-                  duelSpinning ||
-                  inventory[def.id] <= 0 ||
-                  (def.id === 'fire' && active.boost) ||
-                  (def.id === 'poison' && active.weaken) ||
-                  (def.id === 'raven' && active.revive)
-                }
-                onClick={() => useItem(def.id)}
-              >
-                <span className="inventory-icon">{def.icon}</span>
-                <span className="inventory-count">×{inventory[def.id]}</span>
-              </button>
-            ))}
-            {active.revive && <span className="duel-buff raven-active">🐦 Cuervo listo</span>}
-          </div>
+          {duelWinner !== 'champion' && (
+            <>
+              <div className="inventory-bar">
+                {ITEM_DEFS.map((def) => (
+                  <button
+                    key={def.id}
+                    className="inventory-item"
+                    title={def.desc}
+                    disabled={
+                      duelSpinning ||
+                      inventory[def.id] <= 0 ||
+                      (def.id === 'fire' && active.boost) ||
+                      (def.id === 'poison' && active.weaken) ||
+                      (def.id === 'raven' && active.revive)
+                    }
+                    onClick={() => useItem(def.id)}
+                  >
+                    <span className="inventory-icon">{def.icon}</span>
+                    <span className="inventory-count">×{inventory[def.id]}</span>
+                  </button>
+                ))}
+                {active.revive && <span className="duel-buff raven-active">🐦 Cuervo listo</span>}
+              </div>
 
-          <div className="roulette-stage">
-            <Wheel items={duelItems()} spinToken={duelSpinToken} onSettle={onDuelSettle} />
-          </div>
-          <div className="controls">
-            <button className="spin-btn" onClick={spinDuel} disabled={duelSpinning}>
-              {duelSpinning ? 'Luchando...' : '⚔️ Iniciar Batalla'}
-            </button>
-          </div>
+              <div className="roulette-stage">
+                <Wheel items={duelItems()} spinToken={duelSpinToken} onSettle={onDuelSettle} />
+              </div>
+              <div className="controls">
+                <button className="spin-btn" onClick={spinDuel} disabled={duelSpinning}>
+                  {duelSpinning ? 'Luchando...' : '⚔️ Iniciar Batalla'}
+                </button>
+              </div>
+            </>
+          )}
+
           {duelWinner === 'champion' && (
             <div className="result-card">
               <h2>¡{champion.name} vence!</h2>
-              <p className="result-title">Encuentras un objeto en el campo de batalla.</p>
+              <p className="result-title">Este duelo queda sellado. Encuentras un objeto en el campo de batalla.</p>
               <div className="controls">
                 <button className="spin-btn" onClick={nextRound}>
                   Siguiente batalla →
