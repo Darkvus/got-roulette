@@ -118,6 +118,8 @@ export default function Wheel({ items, spinToken, onSettle, showSigils = false }
   const [ticker, setTicker] = useState(null);
   const [spinning, setSpinning] = useState(false);
   const lastTickNameRef = useRef(null);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
   const { soundEnabled } = useSettings();
 
   const colorFor = (item, i) => item.color || PALETTE[i % PALETTE.length];
@@ -130,6 +132,7 @@ export default function Wheel({ items, spinToken, onSettle, showSigils = false }
   }, [items, showSigils]);
 
   useEffect(() => {
+    const items = itemsRef.current;
     if (spinToken === 0 || !items.length || !wrapRef.current) return;
 
     const totalWeight = items.reduce((a, it) => a + it.weight, 0);
@@ -185,8 +188,12 @@ export default function Wheel({ items, spinToken, onSettle, showSigils = false }
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
+    // Intentionally depends only on spinToken: `items` is recreated on every
+    // render by some callers (e.g. duel wheels), and including it here would
+    // re-trigger a fresh spin whenever the parent re-renders after a spin
+    // settles — causing an endless auto-spin loop instead of a single spin.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [spinToken, items]);
+  }, [spinToken]);
 
   return (
     <div className="wheel-stage">

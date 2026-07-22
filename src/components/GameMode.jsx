@@ -65,6 +65,7 @@ export default function GameMode({ characters }) {
 
   const [inventory, setInventory] = useState({ fire: 0, raven: 0, poison: 0 });
   const [active, setActive] = useState({ boost: false, weaken: false, revive: false });
+  const [revivePrompt, setRevivePrompt] = useState(false);
 
   const isBossRound = round >= REGIONS.length;
   const roundLabel = isBossRound
@@ -159,6 +160,10 @@ export default function GameMode({ characters }) {
         setActive((a) => ({ ...a, revive: false }));
         return;
       }
+      if (inventory.raven > 0) {
+        setRevivePrompt(true);
+        return;
+      }
       setOutcome('defeat');
       return;
     }
@@ -168,6 +173,17 @@ export default function GameMode({ characters }) {
     if (round >= TOTAL_ROUNDS - 1) {
       setOutcome('victory');
     }
+  }
+
+  function confirmRevive() {
+    setInventory((inv) => ({ ...inv, raven: inv.raven - 1 }));
+    setRevivePrompt(false);
+    setDuelWinner(null);
+  }
+
+  function declineRevive() {
+    setRevivePrompt(false);
+    setOutcome('defeat');
   }
 
   function nextRound() {
@@ -186,6 +202,7 @@ export default function GameMode({ characters }) {
     setRound(0);
     setDuelWinner(null);
     setOutcome(null);
+    setRevivePrompt(false);
     setInventory({ fire: 0, raven: 0, poison: 0 });
     setActive({ boost: false, weaken: false, revive: false });
   }
@@ -376,6 +393,26 @@ export default function GameMode({ characters }) {
             <button className="spin-btn" onClick={restart}>Intentarlo de nuevo</button>
           </div>
         </section>
+      )}
+
+      {revivePrompt && (
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <h3>🐦 ¡{champion.name} ha caído en combate!</h3>
+            <p>
+              Tienes un Cuervo Mensajero. ¿Quieres usarlo para resucitar y repetir este duelo,
+              como Jon Snow?
+            </p>
+            <div className="controls">
+              <button className="spin-btn" onClick={confirmRevive}>
+                🐦 Usar Cuervo Mensajero
+              </button>
+              <button className="spin-btn secondary" onClick={declineRevive}>
+                Aceptar la derrota
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
