@@ -4,10 +4,26 @@ import { getHouseCharacters, playableHouses } from '../data/houseMembers';
 import { pickWeighted } from '../data/weights';
 import { HOUSES } from '../data/houses';
 
-const REGIONS = ['El Norte', 'Los Ríos y el Valle', 'Desembarco del Rey'];
+const REGIONS = [
+  'El Norte',
+  'Las Islas del Hierro',
+  'El Valle',
+  'Los Ríos',
+  'El Dominio',
+  'Dorne',
+  'Las Tierras de la Tormenta',
+  'Las Tierras del Oeste',
+];
+const BOSS_COUNT = 3;
+const TOTAL_ROUNDS = REGIONS.length + BOSS_COUNT;
 
-function pickRivals(characters, exclude, count) {
-  const pool = characters.filter((c) => !exclude.some((e) => e.id === c.id));
+const ITEM_DEFS = [
+  { id: 'fire', name: 'Fuego Valyrio', icon: '🔥', desc: 'Duplica el poder de tu campeón en este duelo' },
+  { id: 'raven', name: 'Cuervo Mensajero', icon: '🐦', desc: 'Si pierdes este duelo, lo repites una vez' },
+  { id: 'poison', name: 'Veneno de las Viudas', icon: '☠️', desc: 'Reduce a la mitad el poder del rival en este duelo' },
+];
+
+function pickRivals(pool, count) {
   const rivals = [];
   let remaining = [...pool];
   for (let i = 0; i < count && remaining.length; i++) {
@@ -16,6 +32,14 @@ function pickRivals(characters, exclude, count) {
     remaining = remaining.filter((_, idx) => idx !== index);
   }
   return rivals;
+}
+
+function pickBosses(pool, count) {
+  return [...pool].sort((a, b) => b.weight - a.weight).slice(0, count).reverse();
+}
+
+function randomItemId() {
+  return ITEM_DEFS[Math.floor(Math.random() * ITEM_DEFS.length)].id;
 }
 
 export default function GameMode({ characters }) {
@@ -37,6 +61,14 @@ export default function GameMode({ characters }) {
   const [duelSpinning, setDuelSpinning] = useState(false);
   const [duelWinner, setDuelWinner] = useState(null);
   const [outcome, setOutcome] = useState(null);
+
+  const [inventory, setInventory] = useState({ fire: 0, raven: 0, poison: 0 });
+  const [active, setActive] = useState({ boost: false, weaken: false, revive: false });
+
+  const isBossRound = round >= REGIONS.length;
+  const roundLabel = isBossRound
+    ? `Los Fuertes — Duelo ${round - REGIONS.length + 1} de ${BOSS_COUNT}`
+    : `Batalla ${round + 1} de ${REGIONS.length}: ${REGIONS[round]}`;
 
   function spinHouse() {
     if (houseSpinning || !houses.length) return;
@@ -62,21 +94,45 @@ export default function GameMode({ characters }) {
   }
 
   function startBattles() {
-    const chosenRivals = pickRivals(characters, [...charPool], 3);
-    setRivals(chosenRivals);
+    const outsiders = characters.filter((c) => !charPool.some((h) => h.id === c.id));
+    const normalRivals = pickRivals(outsiders, REGIONS.length);
+    const usedIds = new Set([...charPool, ...normalRivals].map((c) => c.id));
+    const bossPool = characters.filter((c) => !usedIds.has(c.id));
+    const bosses = pickBosses(bossPool, BOSS_COUNT);
+
+    setRivals([...normalRivals, ...bosses]);
     setRound(0);
     setDuelWinner(null);
     setOutcome(null);
+    setInventory({ fire: 0, raven: 0, poison: 0 });
+    setActive({ boost: false, weaken: false, revive: false });
     setStep('duel');
   }
 
   function duelItems() {
     const rival = rivals[round];
     if (!champion || !rival) return [];
+    const championWeight = champion.weight * (active.boost ? 2 : 1);
+    const rivalWeight = rival.weight * (active.weaken ? 0.5 : 1);
     return [
-      { id: 'champion', name: champion.name, weight: champion.weight, color: '#c9a15a', image: champion.image },
-      { id: 'rival', name: rival.name, weight: rival.weight, color: '#8a1f11', image: rival.image },
+      { id: 'champion', name: champion.name, weight: championWeight, color: '#c9a15a', image: champion.image },
+      { id: 'rival', name: rival.name, weight: rivalWeight, color: '#8a1f11', image: rival.image },
     ];
+  }
+
+  function useItem(id) {
+    if (duelSpinning) return;
+    if (id === 'fire' && (active.boost || inventory.fire <= 0)) return;
+    if (id === 'poison' && (active.weaken || inventory.poison <= 0)) return;
+    if (id === 'raven' && (active.revive || inventory.raven <= 0)) return;
+
+    setInventory((inv) => ({ ...inv, [id]: inv[id] - 1 }));
+    setActive((a) => ({
+      ...a,
+      boost: id === 'fire' ? true : a.boost,
+      weaken: id === 'poison' ? true : a.weaken,
+      revive: id === 'raven' ? true : a.revive,
+    }));
   }
 
   function spinDuel() {
@@ -89,9 +145,19 @@ export default function GameMode({ characters }) {
   function onDuelSettle(item) {
     setDuelSpinning(false);
     setDuelWinner(item.id);
+
     if (item.id === 'rival') {
+      if (active.revive) {
+        setActive((a) => ({ ...a, revive: false }));
+        return;
+      }
       setOutcome('defeat');
-    } else if (round >= REGIONS.length - 1) {
+      return;
+    }
+
+    const rewardId = randomItemId();
+    setInventory((inv) => ({ ...inv, [rewardId]: inv[rewardId] + 1 }));
+    if (round >= TOTAL_ROUNDS - 1) {
       setOutcome('victory');
     }
   }
@@ -99,6 +165,7 @@ export default function GameMode({ characters }) {
   function nextRound() {
     setRound((r) => r + 1);
     setDuelWinner(null);
+    setActive({ boost: false, weaken: false, revive: false });
   }
 
   function restart() {
@@ -110,6 +177,8 @@ export default function GameMode({ characters }) {
     setRound(0);
     setDuelWinner(null);
     setOutcome(null);
+    setInventory({ fire: 0, raven: 0, poison: 0 });
+    setActive({ boost: false, weaken: false, revive: false });
   }
 
   if (!characters.length) {
@@ -171,20 +240,44 @@ export default function GameMode({ characters }) {
 
       {step === 'duel' && !outcome && (
         <section className="game-step">
-          <h3 className="game-step-title">
-            Batalla {round + 1} de {REGIONS.length}: {REGIONS[round]}
-          </h3>
+          <h3 className={`game-step-title ${isBossRound ? 'boss-title' : ''}`}>{roundLabel}</h3>
+
           <div className="duel-vs">
             <div className="duel-fighter">
               <img src={champion.image} alt={champion.name} />
               <span>{champion.name}</span>
+              {active.boost && <span className="duel-buff">🔥 +100%</span>}
             </div>
             <span className="duel-vs-label">VS</span>
             <div className="duel-fighter">
               <img src={rivals[round].image} alt={rivals[round].name} />
               <span>{rivals[round].name}</span>
+              {active.weaken && <span className="duel-buff">☠️ -50%</span>}
             </div>
           </div>
+
+          <div className="inventory-bar">
+            {ITEM_DEFS.map((def) => (
+              <button
+                key={def.id}
+                className="inventory-item"
+                title={def.desc}
+                disabled={
+                  duelSpinning ||
+                  inventory[def.id] <= 0 ||
+                  (def.id === 'fire' && active.boost) ||
+                  (def.id === 'poison' && active.weaken) ||
+                  (def.id === 'raven' && active.revive)
+                }
+                onClick={() => useItem(def.id)}
+              >
+                <span className="inventory-icon">{def.icon}</span>
+                <span className="inventory-count">×{inventory[def.id]}</span>
+              </button>
+            ))}
+            {active.revive && <span className="duel-buff raven-active">🐦 Cuervo listo</span>}
+          </div>
+
           <div className="roulette-stage">
             <Wheel items={duelItems()} spinToken={duelSpinToken} onSettle={onDuelSettle} />
           </div>
@@ -196,6 +289,7 @@ export default function GameMode({ characters }) {
           {duelWinner === 'champion' && (
             <div className="result-card">
               <h2>¡{champion.name} vence!</h2>
+              <p className="result-title">Encuentras un objeto en el campo de batalla.</p>
               <div className="controls">
                 <button className="spin-btn" onClick={nextRound}>
                   Siguiente batalla →
@@ -210,7 +304,9 @@ export default function GameMode({ characters }) {
         <section className="result-card victory">
           <div className="crest" style={{ background: house.color }}>{house.sigil}</div>
           <h2>👑 {champion.name} se sienta en el Trono de Hierro</h2>
-          <p className="result-words">Todos los hombres deben morir, pero {champion.name.split(' ')[0]} conquistó los Siete Reinos para {house.name}.</p>
+          <p className="result-words">
+            Tras vencer a Los Fuertes, {champion.name.split(' ')[0]} conquistó los Siete Reinos para {house.name}.
+          </p>
           <div className="controls">
             <button className="spin-btn" onClick={restart}>Jugar de nuevo</button>
           </div>
@@ -221,7 +317,8 @@ export default function GameMode({ characters }) {
         <section className="result-card defeat">
           <h2>💀 {champion.name} ha caído</h2>
           <p className="result-words">
-            Derrotado por {rivals[round].name} en {REGIONS[round]}. El Trono de Hierro sigue vacío.
+            Derrotado por {rivals[round].name}
+            {isBossRound ? ' en el duelo contra Los Fuertes' : ` en ${REGIONS[round]}`}. El Trono de Hierro sigue vacío.
           </p>
           <div className="controls">
             <button className="spin-btn" onClick={restart}>Intentarlo de nuevo</button>
