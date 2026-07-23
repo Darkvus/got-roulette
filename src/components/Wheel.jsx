@@ -142,7 +142,10 @@ export default function Wheel({ items, spinToken, onSettle, showSigils = false }
     for (let i = 0; i < chosenIndex; i++) cum += items[i].weight;
     const sliceStart = (cum / totalWeight) * 360;
     const sliceSize = (chosen.weight / totalWeight) * 360;
-    const targetMid = sliceStart + sliceSize / 2;
+    const margin = Math.min(sliceSize * 0.15, 2);
+    const targetMid = sliceSize > margin * 2
+      ? sliceStart + margin + Math.random() * (sliceSize - margin * 2)
+      : sliceStart + sliceSize / 2;
 
     const extraTurns = 5 + Math.floor(Math.random() * 3);
     const startRotation = rotationRef.current;
