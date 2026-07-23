@@ -78,6 +78,7 @@ export default function GameMode({ characters }) {
   const [inventory, setInventory] = useState({ fire: 0, raven: 0, poison: 0 });
   const [active, setActive] = useState({ boost: false, weaken: false, revive: false });
   const [revivePrompt, setRevivePrompt] = useState(false);
+  const [underdogBonus, setUnderdogBonus] = useState(null);
 
   const isBossRound = round >= REGIONS.length;
   const roundLabel = isBossRound
@@ -179,6 +180,15 @@ export default function GameMode({ characters }) {
       setOutcome('defeat');
       return;
     }
+
+    const rival = rivals[round];
+    const championWeight = champion.weight * (active.boost ? 2 : 1);
+    const rivalWeight = rival.weight * (active.weaken ? 0.5 : 1);
+    if (rivalWeight > championWeight) {
+      const bonus = ITEM_DEFS[Math.floor(Math.random() * ITEM_DEFS.length)];
+      setInventory((inv) => ({ ...inv, [bonus.id]: inv[bonus.id] + 1 }));
+      setUnderdogBonus(bonus.id);
+    }
   }
 
   function spinPath() {
@@ -237,6 +247,7 @@ export default function GameMode({ characters }) {
     setPathSpinToken(0);
     setItemSpinToken(0);
     setLootSpinToken(0);
+    setUnderdogBonus(null);
     if (round >= TOTAL_ROUNDS - 1) {
       setOutcome('victory');
     } else {
@@ -278,6 +289,7 @@ export default function GameMode({ characters }) {
     setPathSpinToken(0);
     setItemSpinToken(0);
     setLootSpinToken(0);
+    setUnderdogBonus(null);
     setOutcome(null);
     setRevivePrompt(false);
     setInventory({ fire: 0, raven: 0, poison: 0 });
@@ -436,6 +448,13 @@ export default function GameMode({ characters }) {
             <div className="result-card">
               <h2>¡{champion.name} vence!</h2>
               <p className="result-title">Este duelo queda sellado.</p>
+
+              {underdogBonus && (
+                <p className="result-words">
+                  🏆 ¡Victoria contra todo pronóstico! Consigues {ITEM_DEFS.find((d) => d.id === underdogBonus)?.icon}{' '}
+                  {ITEM_DEFS.find((d) => d.id === underdogBonus)?.name}.
+                </p>
+              )}
 
               {!pathOutcome && (
                 <>
