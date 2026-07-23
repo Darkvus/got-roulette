@@ -29,6 +29,8 @@ const PATH_ITEMS = [
   { id: 'item', name: 'Objeto hallado', icon: '🎁', weight: 1, color: '#c9a15a' },
 ];
 
+const ITEM_WHEEL_ITEMS = ITEM_DEFS.map((def) => ({ ...def, weight: 1 }));
+
 function pickRivals(pool, count) {
   const rivals = [];
   let remaining = [...pool];
@@ -42,10 +44,6 @@ function pickRivals(pool, count) {
 
 function pickBosses(pool, count) {
   return [...pool].sort((a, b) => b.weight - a.weight).slice(0, count).reverse();
-}
-
-function randomItemId() {
-  return ITEM_DEFS[Math.floor(Math.random() * ITEM_DEFS.length)].id;
 }
 
 export default function GameMode({ characters }) {
@@ -72,6 +70,10 @@ export default function GameMode({ characters }) {
   const [pathSpinToken, setPathSpinToken] = useState(0);
   const [pathSpinning, setPathSpinning] = useState(false);
   const [pathOutcome, setPathOutcome] = useState(null);
+  const [itemSpinToken, setItemSpinToken] = useState(0);
+  const [itemSpinning, setItemSpinning] = useState(false);
+  const [lootSpinToken, setLootSpinToken] = useState(0);
+  const [lootSpinning, setLootSpinning] = useState(false);
 
   const [inventory, setInventory] = useState({ fire: 0, raven: 0, poison: 0 });
   const [active, setActive] = useState({ boost: false, weaken: false, revive: false });
@@ -189,30 +191,52 @@ export default function GameMode({ characters }) {
     setPathSpinning(false);
 
     if (item.id === 'loot') {
-      const owned = Object.entries(inventory).filter(([, n]) => n > 0).map(([id]) => id);
-      if (owned.length) {
-        const lostId = owned[Math.floor(Math.random() * owned.length)];
-        setInventory((inv) => ({ ...inv, [lostId]: inv[lostId] - 1 }));
-        setPathOutcome({ type: 'loot', itemId: lostId });
-      } else {
-        setPathOutcome({ type: 'loot', itemId: null });
-      }
+      const hasItems = ITEM_DEFS.some((d) => inventory[d.id] > 0);
+      setPathOutcome({ type: 'loot', itemId: null, pending: hasItems });
       return;
     }
 
     if (item.id === 'item') {
-      const rewardId = randomItemId();
-      setInventory((inv) => ({ ...inv, [rewardId]: inv[rewardId] + 1 }));
-      setPathOutcome({ type: 'item', itemId: rewardId });
+      setPathOutcome({ type: 'item', itemId: null, pending: true });
       return;
     }
 
     setPathOutcome({ type: 'advance', itemId: null });
   }
 
+  function ownedItems() {
+    return ITEM_DEFS.filter((d) => inventory[d.id] > 0).map((d) => ({ ...d, weight: 1 }));
+  }
+
+  function spinItem() {
+    if (itemSpinning) return;
+    setItemSpinning(true);
+    setItemSpinToken((t) => t + 1);
+  }
+
+  function onItemSettle(item) {
+    setItemSpinning(false);
+    setInventory((inv) => ({ ...inv, [item.id]: inv[item.id] + 1 }));
+    setPathOutcome((po) => ({ ...po, itemId: item.id, pending: false }));
+  }
+
+  function spinLoot() {
+    if (lootSpinning) return;
+    setLootSpinning(true);
+    setLootSpinToken((t) => t + 1);
+  }
+
+  function onLootSettle(item) {
+    setLootSpinning(false);
+    setInventory((inv) => ({ ...inv, [item.id]: inv[item.id] - 1 }));
+    setPathOutcome((po) => ({ ...po, itemId: item.id, pending: false }));
+  }
+
   function advanceAfterPath() {
     setPathOutcome(null);
     setPathSpinToken(0);
+    setItemSpinToken(0);
+    setLootSpinToken(0);
     if (round >= TOTAL_ROUNDS - 1) {
       setOutcome('victory');
     } else {
@@ -252,6 +276,8 @@ export default function GameMode({ characters }) {
     setDuelSpinToken(0);
     setPathOutcome(null);
     setPathSpinToken(0);
+    setItemSpinToken(0);
+    setLootSpinToken(0);
     setOutcome(null);
     setRevivePrompt(false);
     setInventory({ fire: 0, raven: 0, poison: 0 });
@@ -424,7 +450,35 @@ export default function GameMode({ characters }) {
                 </>
               )}
 
-              {pathOutcome && (
+              {pathOutcome && pathOutcome.type === 'loot' && pathOutcome.pending && (
+                <>
+                  <p className="result-words">Unos saqueadores te asaltan. ¡Gira para ver qué te roban!</p>
+                  <div className="roulette-stage">
+                    <Wheel items={ownedItems()} spinToken={lootSpinToken} onSettle={onLootSettle} />
+                  </div>
+                  <div className="controls">
+                    <button className="spin-btn" onClick={spinLoot} disabled={lootSpinning}>
+                      {lootSpinning ? 'Girando...' : '🎲 Girar el Saqueo'}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {pathOutcome && pathOutcome.type === 'item' && pathOutcome.pending && (
+                <>
+                  <p className="result-words">Encuentras algo en el camino. ¡Gira para ver qué es!</p>
+                  <div className="roulette-stage">
+                    <Wheel items={ITEM_WHEEL_ITEMS} spinToken={itemSpinToken} onSettle={onItemSettle} />
+                  </div>
+                  <div className="controls">
+                    <button className="spin-btn" onClick={spinItem} disabled={itemSpinning}>
+                      {itemSpinning ? 'Girando...' : '🎲 Girar el Objeto'}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {pathOutcome && !pathOutcome.pending && (
                 <>
                   <p className="result-words">
                     {pathOutcome.type === 'advance' &&
