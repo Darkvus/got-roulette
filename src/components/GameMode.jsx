@@ -23,6 +23,12 @@ const ITEM_DEFS = [
   { id: 'poison', name: 'Veneno de las Viudas', icon: '☠️', desc: 'Reduce a la mitad el poder del rival en este duelo' },
 ];
 
+const PATH_ITEMS = [
+  { id: 'advance', name: 'Camino despejado', icon: '🐎', weight: 1, color: '#3a3f47' },
+  { id: 'loot', name: 'Saqueadores', icon: '🗡️', weight: 1, color: '#8a1f11' },
+  { id: 'item', name: 'Objeto hallado', icon: '🎁', weight: 1, color: '#c9a15a' },
+];
+
 function pickRivals(pool, count) {
   const rivals = [];
   let remaining = [...pool];
@@ -62,6 +68,10 @@ export default function GameMode({ characters }) {
   const [duelSpinning, setDuelSpinning] = useState(false);
   const [duelWinner, setDuelWinner] = useState(null);
   const [outcome, setOutcome] = useState(null);
+
+  const [pathSpinToken, setPathSpinToken] = useState(0);
+  const [pathSpinning, setPathSpinning] = useState(false);
+  const [pathOutcome, setPathOutcome] = useState(null);
 
   const [inventory, setInventory] = useState({ fire: 0, raven: 0, poison: 0 });
   const [active, setActive] = useState({ boost: false, weaken: false, revive: false });
@@ -167,11 +177,46 @@ export default function GameMode({ characters }) {
       setOutcome('defeat');
       return;
     }
+  }
 
-    const rewardId = randomItemId();
-    setInventory((inv) => ({ ...inv, [rewardId]: inv[rewardId] + 1 }));
+  function spinPath() {
+    if (pathSpinning) return;
+    setPathSpinning(true);
+    setPathSpinToken((t) => t + 1);
+  }
+
+  function onPathSettle(item) {
+    setPathSpinning(false);
+
+    if (item.id === 'loot') {
+      const owned = Object.entries(inventory).filter(([, n]) => n > 0).map(([id]) => id);
+      if (owned.length) {
+        const lostId = owned[Math.floor(Math.random() * owned.length)];
+        setInventory((inv) => ({ ...inv, [lostId]: inv[lostId] - 1 }));
+        setPathOutcome({ type: 'loot', itemId: lostId });
+      } else {
+        setPathOutcome({ type: 'loot', itemId: null });
+      }
+      return;
+    }
+
+    if (item.id === 'item') {
+      const rewardId = randomItemId();
+      setInventory((inv) => ({ ...inv, [rewardId]: inv[rewardId] + 1 }));
+      setPathOutcome({ type: 'item', itemId: rewardId });
+      return;
+    }
+
+    setPathOutcome({ type: 'advance', itemId: null });
+  }
+
+  function advanceAfterPath() {
+    setPathOutcome(null);
+    setPathSpinToken(0);
     if (round >= TOTAL_ROUNDS - 1) {
       setOutcome('victory');
+    } else {
+      nextRound();
     }
   }
 
@@ -189,6 +234,7 @@ export default function GameMode({ characters }) {
   function nextRound() {
     setRound((r) => r + 1);
     setDuelWinner(null);
+    setDuelSpinToken(0);
     setActive({ boost: false, weaken: false, revive: false });
   }
 
@@ -196,11 +242,16 @@ export default function GameMode({ characters }) {
     setStep('house');
     setHouse(null);
     setShowHousePicker(false);
+    setHouseSpinToken(0);
     setCharPool([]);
     setChampion(null);
+    setCharSpinToken(0);
     setRivals([]);
     setRound(0);
     setDuelWinner(null);
+    setDuelSpinToken(0);
+    setPathOutcome(null);
+    setPathSpinToken(0);
     setOutcome(null);
     setRevivePrompt(false);
     setInventory({ fire: 0, raven: 0, poison: 0 });
@@ -358,12 +409,40 @@ export default function GameMode({ characters }) {
           {duelWinner === 'champion' && (
             <div className="result-card">
               <h2>¡{champion.name} vence!</h2>
-              <p className="result-title">Este duelo queda sellado. Encuentras un objeto en el campo de batalla.</p>
-              <div className="controls">
-                <button className="spin-btn" onClick={nextRound}>
-                  Siguiente batalla →
-                </button>
-              </div>
+              <p className="result-title">Este duelo queda sellado.</p>
+
+              {!pathOutcome && (
+                <>
+                  <div className="roulette-stage">
+                    <Wheel items={PATH_ITEMS} spinToken={pathSpinToken} onSettle={onPathSettle} />
+                  </div>
+                  <div className="controls">
+                    <button className="spin-btn" onClick={spinPath} disabled={pathSpinning}>
+                      {pathSpinning ? 'Girando...' : '🎲 Girar el Camino'}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {pathOutcome && (
+                <>
+                  <p className="result-words">
+                    {pathOutcome.type === 'advance' &&
+                      'El camino está despejado. Avanzas sin contratiempos.'}
+                    {pathOutcome.type === 'loot' &&
+                      (pathOutcome.itemId
+                        ? `Unos saqueadores te asaltan y te roban ${ITEM_DEFS.find((d) => d.id === pathOutcome.itemId)?.icon} ${ITEM_DEFS.find((d) => d.id === pathOutcome.itemId)?.name}.`
+                        : 'Unos saqueadores te asaltan, pero no llevabas nada que robar.')}
+                    {pathOutcome.type === 'item' &&
+                      `Encuentras en el camino ${ITEM_DEFS.find((d) => d.id === pathOutcome.itemId)?.icon} ${ITEM_DEFS.find((d) => d.id === pathOutcome.itemId)?.name}.`}
+                  </p>
+                  <div className="controls">
+                    <button className="spin-btn" onClick={advanceAfterPath}>
+                      {round >= TOTAL_ROUNDS - 1 ? 'Reclamar el Trono →' : 'Siguiente batalla →'}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </section>
